@@ -13,10 +13,7 @@ class Spreadsheet
   end
 
   def cell_at(cell_index)
-    cell = @utilities.get_by_cell_index(cell_index)
-
-    raise Error, "Cell '#{cell_index}' does not exist." unless cell
-    cell.to_s
+    @utilities.get_by_cell_index(cell_index).to_s
   end
 
   def [](cell_index)
@@ -24,14 +21,9 @@ class Spreadsheet
   end
 
   def to_s
-    tab = ""
-    @cells.each do |row|
-      row.each { |cell| tab << "#{@utilities.calculate_expression(cell)}\t" }
-
-      tab.chop!
-      tab << "\n"
-    end
-    empty? ? tab : tab.chop
+    @cells.map do |row|
+      row.map { |cell| @utilities.calculate_expression(cell) }.join("\t")
+    end.join("\n")
   end
 end
 
@@ -41,12 +33,9 @@ class SheetUtilities
   end
 
   def parse_sheet(sheet)
-    sheet.strip.split("\n").each do |row|
-      next if row.empty?
-      delimiter = /#{Regexp.escape(row.include?("\t") ? "\t" : "  ")}+/
-
+    sheet.strip.split(/\n/).map do |row|
       current = []
-      row.strip.split(delimiter).each { |cell| current << cell.strip }
+      row.strip.split(/\t+| {2,}/).each { |cell| current << cell.strip }
       @cells << current
     end
   end
@@ -65,7 +54,6 @@ class SheetUtilities
   end
 
   def extract_args(arguments)
-    return unless arguments
     arguments.split(',').map do |argument|
       if argument =~ /[A-Z]+[0-9]+/
         argument = get_by_cell_index(argument)
@@ -88,16 +76,15 @@ class SheetUtilities
   end
 
   def get_by_cell_index(cell_index)
-    cell_index.strip!
     cell_index.scan(/([A-Z]+)([0-9]+)/)
     raise Spreadsheet::Error, "Invalid cell index '#{cell_index}'." unless $1
 
     col, row = parse_col($1), $2.to_i - 1
 
-    exists?(row, col, cell_index)
+    verify(row, col, cell_index)
   end
 
-  def exists?(row, col, cell_index)
+  def verify(row, col, cell_index)
     begin
       @cells[row][col]
     rescue NoMethodError
