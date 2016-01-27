@@ -21,23 +21,17 @@ module LazyMode
     attr_reader :day
 
     def initialize(date_string)
-      unless date_string =~ /^\d+-\d+-\d+$/
-        raise ArgumentError, 'invalid date format'
-      end
-
       split  = date_string.split('-')
 
       @year  = split[0].to_i
       @month = split[1].to_i
       @day   = split[2].to_i
+
+      @date_string = date_string
     end
 
     def to_s
-      year  = '0' * (YEAR_COUNT - @year.to_s.size) + @year.to_s
-      month = '0' * (MONTH_COUNT - @month.to_s.size) + @month.to_s
-      day   = '0' * (DAY_COUNT - @day.to_s.size) + @day.to_s
-
-      "%s-%s-%s" % [year, month, day]
+      @date_string
     end
 
     def add(period)
@@ -45,12 +39,25 @@ module LazyMode
       @days += period_to_days(match[0], match[1])
     end
 
+    def after(days)
+      days_after_date = to_days + days
+      month_day = (days_after_date % 360) % 30
+      month = 1 + (days_after_date % 360) / 30
+      year = days_after_date / 360
+
+      Date.new(sprintf('%.4d-%.2d-%.2d', year, month, month_day))
+    end
+
     def to_days
-      year * 360 + month * 30 + day
+      year * 360 + (month - 1) * 30 + day
     end
 
     def ==(other)
-      year == other.year and month == other.month and day == other.day
+      to_days == other.to_days
+    end
+
+    def -(other)
+      to_days - other.to_days
     end
   end
 
@@ -63,7 +70,7 @@ module LazyMode
       @tags      = tags
       @status    = :topostpone
       @body      = ''
-      @notes     = []
+      @sub_notes     = []
     end
 
     def scheduled(date = nil)
@@ -83,13 +90,17 @@ module LazyMode
     end
 
     def note(header, *tags, &block)
-      @notes << Note.new(header, @name, *tags)
-      @notes.last.instance_eval(&block)
+      @sub_notes << Note.new(header, @name, *tags)
+      @sub_notes.last.instance_eval(&block)
+    end
+
+    def flatten_sub_notes
+     @sub_notes.flat_map { |sub_note| [sub_note] + sub_note.flatten_sub_notes }
     end
 
     def scheduled_for?(date)
       return true if @scheduled == date
-      return false unless @period
+      return false if (not @period or @scheduled - date > 0)
 
       target = date.to_days
       current = @scheduled.to_days
@@ -117,10 +128,22 @@ module LazyMode
     end
 
     def daily_agenda(target_date)
-      agenda = @notes.select { |note| note.scheduled_for?(target_date) }
+      agenda = flatten_notes.select { |note| note.scheduled_for?(target_date) }
       agenda.map! { |note| ScheduledNote.new(note, target_date) }
 
       FilteredNotes.new(agenda)
+    end
+
+    def weekly_agenda(target_date)
+      agenda = (0..6).flat_map do |day|
+        daily_agenda(target_date.after(day)).notes
+      end
+
+      FilteredNotes.new(agenda)
+    end
+
+    def flatten_notes
+      notes + notes.flat_map { |note| note.flatten_sub_notes }
     end
   end
 
