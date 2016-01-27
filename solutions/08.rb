@@ -65,13 +65,13 @@ class SheetUtilities
   end
 
   def extract_args(arguments)
+    return unless arguments
     arguments.split(',').map do |argument|
       if argument =~ /[A-Z]+[0-9]+/
         argument = get_by_cell_index(argument)
       end
 
-      argument = calculate_expression(argument)
-      argument = argument.strip.to_f
+      calculate_expression(argument).strip.to_f
     end
   end
 
@@ -88,13 +88,21 @@ class SheetUtilities
   end
 
   def get_by_cell_index(cell_index)
+    cell_index.strip!
     cell_index.scan(/([A-Z]+)([0-9]+)/)
     raise Spreadsheet::Error, "Invalid cell index '#{cell_index}'." unless $1
 
-    col = parse_col($1)
-    row = $2.to_i - 1
+    col, row = parse_col($1), $2.to_i - 1
 
-    @cells[row][col] rescue nil
+    exists?(row, col, cell_index)
+  end
+
+  def exists?(row, col, cell_index)
+    begin
+      @cells[row][col]
+    rescue NoMethodError
+      raise Spreadsheet::Error, "Cell '#{cell_index.strip}' does not exist."
+    end
   end
 
   def calculate_expression(expression)
@@ -102,7 +110,7 @@ class SheetUtilities
 
     calculation = parse_formula(expression)
     unless calculation
-      raise Spreadsheet::Error, "Invalid expression '#{expression}'"
+      raise Spreadsheet::Error, "Invalid expression '#{expression[1..-1]}'"
     end
     calculation.to_s
   end
@@ -147,4 +155,3 @@ class Formula
   end
 end
 
-p Spreadsheet.new('10  =ADD(5, A1)  3  =DIVIDE(B1, C1)  =MOD(D1, 4)')['E1']
