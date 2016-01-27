@@ -2,8 +2,7 @@ class Spreadsheet
   class Error < StandardError
   end
 
-  def initialize(sheet = nil)
-    return unless sheet
+  def initialize(sheet = '')
     @cells = []
     @utilities = SheetUtilities.new(@cells)
     @utilities.parse_sheet(sheet)
@@ -32,7 +31,7 @@ class Spreadsheet
       tab.chop!
       tab << "\n"
     end
-    tab.chop!
+    empty? ? tab : tab.chop
   end
 end
 
@@ -81,7 +80,7 @@ class SheetUtilities
     end
 
     if expression.match(/(\w+)\(((\s*[-+]?[0-9A-Z]\.?\s*,?)+)+\)/)
-      return Formulas.get_formula($1).calculate(*extract_args($2))
+      return Formula.new($1).calculate(*extract_args($2))
     end
     false
   end
@@ -107,87 +106,38 @@ class SheetUtilities
   end
 end
 
-module Formulas
-  def self.get_formula(formula)
-    object = const_get(formula.downcase.capitalize).new rescue nil
-    raise Spreadsheet::Error, "Unknown function '#{formula}'" unless object
-    object
+class Formula
+  FORMULAS = {
+    'ADD'        => ->(a, b, *rest) { [a, b, rest].flatten.reduce(:+) },
+    'MULTIPLY'   => ->(a, b, *rest) { [a, b, rest].flatten.reduce(:*) },
+    'SUBSTRACT'  => ->(x, y) { x - y },
+    'DIVIDE'     => ->(x, y) { x / y },
+    'MOD'        => ->(x, y) { x % y },
+  }
+  LESS = "Wrong number of arguments for 'FOO': expected at least %s, got %s"
+  MORE = "Wrong number of arguments for 'FOO': expected %s, got %s"
+  UNKNOWN = "Unknown function '%s'"
+
+  def initialize(formula)
+    @function = FORMULAS[formula]
+    raise Spreadsheet::Error, UNKNOWN % formula unless @function
   end
 
-  class Formula
-    LESS = "Wrong number of arguments for 'FOO': expected at least %s, got %s"
-    MORE = "Wrong number of arguments for 'FOO': expected %s, got %s"
-
-    attr_accessor :arguments_count
-
-    def calculate(*args)
-      check_arguments(args) unless arguments_count == 0
-      calculation = algorithm(*args).to_f
-      (calculation % 1 == 0.0) ? calculation.to_i : format('%.2f', calculation)
-    end
-
-    def algorithm(*args)
-      raise StandardError, 'base class method should not be called'
-    end
-
-    def check_arguments(args)
-      if args.count < @arguments_count
-        raise Spreadsheet::Error, LESS % [@arguments_count, args.count]
-      end
-
-      if args.count > @arguments_count
-        raise Spreadsheet::Error, MORE % [@arguments_count, args.count]
-      end
-    end
+  def calculate(*args)
+    check_arguments(args)
+    calculation = @function.(args).to_f
+    (calculation % 1 == 0.0) ? calculation.to_i : format('%.2f', calculation)
   end
 
-  class Add < Formula
-    def initialize
-      @arguments_count = 0
+  def check_arguments(args)
+    args_count = @formula.arity < 0 ? @formula.arity.abs - 1 : @formula.arity
+
+    if args.count < args_count
+      raise Spreadsheet::Error, LESS % [args_count, args.count]
     end
 
-    def algorithm(*args)
-      args.reduce { |a, b| a + b }
-    end
-  end
-
-  class Multiply < Formula
-    def initialize
-      @arguments_count = 0
-    end
-
-    def algorithm(*args)
-      args.reduce { |a, b| a * b }
-    end
-  end
-
-  class Subtract < Formula
-    def initialize
-      @arguments_count = 2
-    end
-
-    def algorithm(*args)
-      args.first - args.last
-    end
-  end
-
-  class Divide < Formula
-    def initialize
-      @arguments_count = 2
-    end
-
-    def algorithm(*args)
-      args.first / args.last
-    end
-  end
-
-  class Mod < Formula
-    def initialize
-      @arguments_count = 2
-    end
-
-    def algorithm(*args)
-      args.first % args.last
+    if args.count > args_count and @formula.arity > 0
+      raise Spreadsheet::Error, MORE % [args_count, args.count]
     end
   end
 end
