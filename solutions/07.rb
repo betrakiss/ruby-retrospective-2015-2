@@ -166,5 +166,29 @@ module LazyMode
     def initialize(notes)
       @notes = notes
     end
+
+
+    def where(tag: nil, status: nil, text: nil)
+      filtered = @notes.dup
+
+      filter_by_tag(filtered, tag) if tag
+      filter_by_status(notes, status) if status
+      filter_by_text(notes, text) if text
+
+      p filtered
+      FilteredNotes.new(filtered)
+    end
+
+    def filter_by_tag(notes, tag)
+      notes.select! { |n| n.tags.include? tag }
+    end
+
+    def filter_by_status(notes, status)
+      notes.select! { |n| n.status == status }
+    end
+
+    def filter_by_text(notes, text)
+      notes.select! { |n| n.header =~ text or n.body =~ text }
+    end
   end
 end
