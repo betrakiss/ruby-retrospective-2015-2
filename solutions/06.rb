@@ -76,9 +76,10 @@ module TurtleGraphics
       end
 
       def to_canvas(canvas)
+        max_steps = canvas.map(&:max).max
         asci = ""
         canvas.each do |row|
-          row.each { |cell| asci += pick_symbol(cell, row.max) }
+          row.each { |cell| asci += pick_symbol(cell, max_steps) }
           asci += "\n"
         end
 
@@ -87,7 +88,7 @@ module TurtleGraphics
 
       def pick_symbol(cell, max)
         intensity = max == 0 ? max : cell.to_f / max
-        @symbols[(intensity / @step).floor]
+        @symbols[(intensity * (@symbols.size - 1)).ceil]
       end
     end
 
