@@ -20,22 +20,37 @@ module LazyMode
         raise ArgumentError, 'invalid date format'
       end
 
-      splitted = date_string.split('-')
+      split = date_string.split('-')
 
-      @year = '0' * (YEAR_COUNT - splitted[0].size) + splitted[0]
-      @month = '0' * (MONTH_COUNT - splitted[1].size) + splitted[1]
-      @day = '0' * (DAY_COUNT - splitted[2].size) + splitted[2]
+      @year = '0' * (YEAR_COUNT - split[0].size) + split[0]
+      @month = '0' * (MONTH_COUNT - split[1].size) + split[1]
+      @day = '0' * (DAY_COUNT - split[2].size) + split[2]
     end
 
     def to_s
       "%s-%s-%s" % [@year, @month, @day]
     end
+
+    def add(period)
+      match = period.match(/(\d+)(\w+)/)
+      puts match
+      @days += period_to_days(match[0], match[1])
+    end
+
+    def period_to_days(amount, type)
+      case type
+        when 'w' then amount * 7
+        when 'd' then amount
+        when 'm' then amount * 30
+      end
+    end
   end
 
-  class Note < File
+  class Note
     attr_reader :header
     attr_reader :file_name
     attr_reader :tags
+    attr_reader :period
 
     def initialize(header, file_name, *tags)
       @header = header
@@ -43,21 +58,30 @@ module LazyMode
       @tags = tags
       @status = :topostpone
       @body = ''
+      @notes = []
     end
 
-    def scheduled(date=nil)
+    def scheduled(date = nil)
       return @scheduled unless date
-      @scheduled = Date.new(date)
+
+      split = date.split(' ')
+      @period = split[1] if split.size > 1
+      @scheduled = Date.new(split[0])
     end
 
-    def status(status=nil)
+    def status(status = nil)
       return @status unless status
       @status = status
     end
 
-    def body(body=nil)
+    def body(body = nil)
       return @body unless body
       @body = body
+    end
+
+    def note(header, *tags, &block)
+      @notes << Note.new(header, @name, *tags)
+      @notes.last.instance_eval &block
     end
   end
 
@@ -75,18 +99,33 @@ module LazyMode
       @notes.last.instance_eval &block
     end
 
-  end
-end
+    # def daily_agenda(target_date)
+    #   agenda = []
+    #   agenda_iteration(@notes, agenda, target_date)
 
-file = LazyMode.create_file('work') do
-  note 'sleep', :important, :wip do
-    scheduled '2012-08-07'
-    status :postponed
-    body 'Try sleeping more at work'
-  end
+    #   return Class.new do
+    #     def note
+    #       agenda
+    #     end
+    #   end
+    # end
 
+    # def agenda_iteration(notes, agenda, target_date)
+    #   notes.each do |note|
+    #     agenda << note if note.scheduled == target_date
 
-  note 'useless activity' do
-    scheduled '2012-08-07'
+    #     loop
+    #       periodic = note.scheduled.add(note.period) if note.period
+    #       break unless periodic
+    #       break if periodic > target_date
+    #       if periodic == target_date
+    #         agenda << note
+    #       end
+    #     end
+
+    #     agenda_iteration(note.notes, agenda, target_date)
+    #   end
+    # end
+
   end
 end
