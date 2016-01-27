@@ -105,16 +105,17 @@ module TurtleGraphics
 
       def initialize(td_size)
         @document = HEADER % (CSS % [td_size, td_size])
+        @document += '<body><table>'
       end
 
       def to_canvas(canvas)
-        @document += '<body><table>'
+        max_steps = canvas.map(&:max).max
 
         canvas.each do |row|
           @document += '<tr>'
 
           row.each do |cell|
-            opacity = calculate_opacity(cell, row.max)
+            opacity = calculate_opacity(cell, max_steps)
             @document += ENTRY % format('%.2f', opacity)
           end
           @document += '</tr>'
