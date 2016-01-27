@@ -70,7 +70,7 @@ module LazyMode
       @tags      = tags
       @status    = :topostpone
       @body      = ''
-      @sub_notes     = []
+      @sub_notes = []
     end
 
     def scheduled(date = nil)
