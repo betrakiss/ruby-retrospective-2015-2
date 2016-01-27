@@ -87,7 +87,7 @@ module TurtleGraphics
       end
 
       def pick_symbol(cell, max)
-        intensity = max == 0 ? max : cell.to_f / max
+        intensity = cell.to_f / max
         @symbols[(intensity * (@symbols.size - 1)).ceil]
       end
     end
@@ -125,7 +125,7 @@ module TurtleGraphics
       end
 
       def calculate_opacity(cell, max)
-        max == 0 ? max : cell.to_f / max
+        cell.to_f / max
       end
     end
   end
