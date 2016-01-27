@@ -42,19 +42,20 @@ class ObjectStore::Repository
   def commit(message)
     return failure(COMMIT_ERROR) if @current_branch.pending.empty?
 
-    object_count = @current_branch.pending.size
+    count = @current_branch.pending.size
     data = @current_branch.empty? ? {} : @current_branch.last_commit.data.dup
 
-    @current_branch.pending.each do |name, change|
-      data[name] = change.value if change.type == :add
-      data.delete(name) if change.type == :delete
-    end
+    @current_branch.pending.each { |name, change| change(data, name, change) }
 
-    commit = ObjectStore::Commit.new(message, data)
-    @current_branch.commits << commit
+    @current_branch.commits << ObjectStore::Commit.new(message, data)
     @current_branch.pending.clear
 
-    success(COMMIT_SUCCESS % [message, object_count], commit)
+    success(COMMIT_SUCCESS % [message, count], @current_branch.last_commit)
+  end
+
+  def change(data, name, change)
+    data[name] = change.value if change.type == :add
+    data.delete(name) if change.type == :delete
   end
 
   def get(name)
@@ -98,8 +99,7 @@ class ObjectStore::Repository
       commits_string += COMMIT_LOG_PATTERN % params
     end
 
-    commits_string.strip!
-    success(commits_string)
+    success(commits_string.strip)
   end
 
   def head
