@@ -1,55 +1,42 @@
 module TurtleGraphics
-  class Point
-    DIRECTIONS = {
-      :up    => [-1, 0],
-      :right => [0, 1],
-      :down  => [1, 0],
-      :left  => [0, -1]
-    }
-
-    attr_accessor :x
-    attr_accessor :y
-
-    def initialize(x, y)
-      @x = x
-      @y = y
-    end
+  class Point < Struct.new(:x, :y)
+    MOVEMENTS = {
+      :right => [0,  1],
+      :down  => [1,  0],
+      :left  => [0, -1],
+      :up    => [-1, 0]
+    }.freeze
 
     def next(direction)
-      coordinates = DIRECTIONS[direction]
-      Point.new(@x + coordinates.first, @y + coordinates.last)
+      coordinates = MOVEMENTS[direction]
+      Point.new(x + coordinates.first, y + coordinates.last)
     end
   end
 
 
   class Turtle
-    DIRECTIONS = [:up, :right, :down, :left]
+    DIRECTIONS = [:up, :right, :down, :left].freeze
 
     attr_reader :canvas
 
     def initialize(rows, columns)
       @rows = rows
       @columns = columns
-      @spawned = false
 
-      init_canvas
+      @canvas = Array.new(columns) { [0] * rows }
+      spawn_at(0, 0)
       look(:right)
     end
 
-    def init_canvas
-      @canvas = []
-      @rows.times { @canvas << Array.new(@columns, 0) }
-    end
-
-    def draw(drawer = nil, &block)
+    def draw(drawer = Canvas::Matrix.new, &block)
       instance_eval &block
 
-      return @canvas unless drawer
+      @canvas[@position.x][@position.y] += 1
       drawer.to_canvas(@canvas)
     end
 
     def move
-      spawn_at(0, 0) unless @spawned
+      @canvas[@position.x][@position.y] += 1
 
       next_position = @position.next(@looks_at)
       next_position.x %= @rows
@@ -67,21 +54,21 @@ module TurtleGraphics
     end
 
     def spawn_at(row, column)
-      @spawned = true
       @position = Point.new(row, column)
-      @canvas[row][column] += 1
     end
 
     def look(orientation)
-      unless (DIRECTIONS.include? orientation)
-        raise ArgumentError, "'#{orientation}' is not a valid direction."
-      end
-
       @looks_at = orientation
     end
   end
 
   module Canvas
+    class Matrix
+      def to_canvas(canvas)
+        canvas
+      end
+    end
+
     class ASCII
       def initialize(symbols)
         @symbols = symbols
