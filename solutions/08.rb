@@ -135,11 +135,12 @@ class Formula
   def check_arguments(args)
     args_count = @formula.arity < 0 ? @formula.arity.abs - 1 : @formula.arity
 
-    if args.count < args_count
+    if args.count < args_count and @formula.arity < 0
       raise Spreadsheet::Error, LESS % [@name, args_count, args.count]
     end
 
-    if args.count > args_count and @formula.arity > 0
+    if args.count > args_count and @formula.arity > 0 or
+        args.count < args_count
       raise Spreadsheet::Error, MORE % [@name, args_count, args.count]
     end
   end
