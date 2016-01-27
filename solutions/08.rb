@@ -3,9 +3,8 @@ class Spreadsheet
   end
 
   def initialize(sheet = '')
-    @cells = []
-    @utilities = SheetUtilities.new(@cells)
-    @utilities.parse_sheet(sheet)
+    @utilities = SheetUtilities.new
+    @cells = @utilities.parse_sheet(sheet)
   end
 
   def empty?
@@ -28,16 +27,9 @@ class Spreadsheet
 end
 
 class SheetUtilities
-  def initialize(cells)
-    @cells = cells
-  end
-
   def parse_sheet(sheet)
-    sheet.strip.split(/\n/).map do |row|
-      current = []
-      row.strip.split(/\t+| {2,}/).each { |cell| current << cell.strip }
-      @cells << current
-    end
+    @cells = sheet.strip.split(/\n/)
+    @cells.map! { |row| row.strip.split(/\t+| {2,}/).map(&:strip) }
   end
 
   def parse_col(col)
