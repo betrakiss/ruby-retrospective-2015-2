@@ -172,10 +172,9 @@ module LazyMode
       filtered = @notes.dup
 
       filter_by_tag(filtered, tag) if tag
-      filter_by_status(notes, status) if status
-      filter_by_text(notes, text) if text
+      filter_by_status(filtered, status) if status
+      filter_by_text(filtered, text) if text
 
-      p filtered
       FilteredNotes.new(filtered)
     end
 
@@ -188,7 +187,7 @@ module LazyMode
     end
 
     def filter_by_text(notes, text)
-      notes.select! { |n| n.header =~ text or n.body =~ text }
+      notes.select! { |n| n.header =~ text || n.body =~ text }
     end
   end
 end
