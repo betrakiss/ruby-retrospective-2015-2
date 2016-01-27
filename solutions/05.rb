@@ -16,19 +16,19 @@ class ObjectStore
   attr_accessor :current_branch
 
   def self.init(&block)
-    return new() unless block
+    return new unless block
 
-    me = new()
+    me = new
     me.instance_eval &block
     me
   end
 
-  def initialize()
+  def initialize
       @current_branch = Branch.new('master')
       @branches = [@current_branch]
   end
 
-  def branch()
+  def branch
     @branch_operator = BranchManager.new(self) if not @branch_operator
     @branch_operator
   end
@@ -87,7 +87,7 @@ class ObjectStore
     TrueResult.new(HEAD_AT % hash, @current_branch.last_commit)
   end
 
-  def log()
+  def log
     commits_none = @current_branch.empty?
     return FalseResult.new(NO_COMMITS % @current_branch.name) if commits_none
 
@@ -101,7 +101,7 @@ class ObjectStore
     TrueResult.new(commits_string)
   end
 
-  def head()
+  def head
     commits_none = @current_branch.commits.empty?
     return FalseResult.new(NO_COMMITS % @current_branch.name) if commits_none
 
@@ -120,11 +120,11 @@ class OperationResult
     @result = result
   end
 
-  def success?()
+  def success?
     @success
   end
 
-  def error?()
+  def error?
     not success?
   end
 end
@@ -166,7 +166,7 @@ class Commit
     @hash = Digest::SHA1.hexdigest hash_pattern
   end
 
-  def objects()
+  def objects
     @data.values
   end
 end
@@ -183,11 +183,11 @@ class Branch
       @name = branch_name
   end
 
-  def last_commit()
+  def last_commit
     @commits.last
   end
 
-  def empty?()
+  def empty?
     @commits.empty?
   end
 end
@@ -231,7 +231,7 @@ class BranchManager
     TrueResult.new(REMOVED % name)
   end
 
-  def list()
+  def list
     branches_list = ""
     @repo.branches.sort! { |a, b| a.name <=> b.name }
     @repo.branches.each do |b|
