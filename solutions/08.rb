@@ -65,11 +65,12 @@ class SheetUtilities
   end
 
   def extract_args(arguments)
-    return unless arguments
     arguments.split(',').map do |argument|
       if argument =~ /[A-Z]+[0-9]+/
         argument = get_by_cell_index(argument)
       end
+
+      argument = calculate_expression(argument)
       argument = argument.strip.to_f
     end
   end
@@ -145,3 +146,5 @@ class Formula
     end
   end
 end
+
+p Spreadsheet.new('10  =ADD(5, A1)  3  =DIVIDE(B1, C1)  =MOD(D1, 4)')['E1']
