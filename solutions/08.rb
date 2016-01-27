@@ -65,6 +65,7 @@ class SheetUtilities
   end
 
   def extract_args(arguments)
+    return unless arguments
     arguments.split(',').map do |argument|
       if argument =~ /[A-Z]+[0-9]+/
         argument = get_by_cell_index(argument)
@@ -79,7 +80,7 @@ class SheetUtilities
       return calculate_expression(get_by_cell_index($1))
     end
 
-    if expression.match(/(\w+)\(((\s*[-+]?[0-9A-Z]\.?\s*,?)+)+\)/)
+    if expression.match(/(\w+)\((.*)\)/)
       return Formula.new($1).calculate(*extract_args($2))
     end
     false
@@ -110,22 +111,23 @@ class Formula
   FORMULAS = {
     'ADD'        => ->(a, b, *rest) { [a, b, rest].flatten.reduce(:+) },
     'MULTIPLY'   => ->(a, b, *rest) { [a, b, rest].flatten.reduce(:*) },
-    'SUBSTRACT'  => ->(x, y) { x - y },
+    'SUBTRACT'  => ->(x, y) { x - y },
     'DIVIDE'     => ->(x, y) { x / y },
     'MOD'        => ->(x, y) { x % y },
   }
-  LESS = "Wrong number of arguments for 'FOO': expected at least %s, got %s"
-  MORE = "Wrong number of arguments for 'FOO': expected %s, got %s"
+  LESS = "Wrong number of arguments for '%s': expected at least %s, got %s"
+  MORE = "Wrong number of arguments for '%s': expected %s, got %s"
   UNKNOWN = "Unknown function '%s'"
 
-  def initialize(formula)
-    @function = FORMULAS[formula]
-    raise Spreadsheet::Error, UNKNOWN % formula unless @function
+  def initialize(name)
+    @name = name
+    @formula = FORMULAS[name]
+    raise Spreadsheet::Error, UNKNOWN % name unless @formula
   end
 
   def calculate(*args)
     check_arguments(args)
-    calculation = @function.(args).to_f
+    calculation = @formula.(*args).to_f
     (calculation % 1 == 0.0) ? calculation.to_i : format('%.2f', calculation)
   end
 
@@ -133,11 +135,12 @@ class Formula
     args_count = @formula.arity < 0 ? @formula.arity.abs - 1 : @formula.arity
 
     if args.count < args_count
-      raise Spreadsheet::Error, LESS % [args_count, args.count]
+      p "IN"
+      raise Spreadsheet::Error, LESS % [@name, args_count, args.count]
     end
 
     if args.count > args_count and @formula.arity > 0
-      raise Spreadsheet::Error, MORE % [args_count, args.count]
+      raise Spreadsheet::Error, MORE % [@name, args_count, args.count]
     end
   end
 end
