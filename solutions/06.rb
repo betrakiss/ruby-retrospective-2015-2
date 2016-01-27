@@ -1,5 +1,12 @@
 module TurtleGraphics
   class Point
+    DIRECTIONS = {
+      :up    => [-1, 0],
+      :right => [0, 1],
+      :down  => [1, 0],
+      :left  => [0, -1]
+    }
+
     attr_accessor :x
     attr_accessor :y
 
@@ -9,12 +16,8 @@ module TurtleGraphics
     end
 
     def next(direction)
-      case direction
-        when :up    then Point.new(@x - 1, @y)
-        when :right then Point.new(@x, @y + 1)
-        when :down  then Point.new(@x + 1, @y)
-        when :left  then Point.new(@x, @y - 1)
-      end
+      coordinates = DIRECTIONS[direction]
+      Point.new(@x + coordinates.first, @y + coordinates.last)
     end
   end
 
