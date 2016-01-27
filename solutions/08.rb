@@ -127,7 +127,6 @@ class Formula
       raise Spreadsheet::Error, LESS % [@name, expected, args.count]
     end
 
-
     if args.count > expected and @formula.arity > 0 or
         args.count < expected
       raise Spreadsheet::Error, MORE % [@name, expected, args.count]
