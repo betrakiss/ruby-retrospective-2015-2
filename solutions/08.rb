@@ -111,10 +111,11 @@ class Formula
   FORMULAS = {
     'ADD'        => ->(a, b, *rest) { [a, b, rest].flatten.reduce(:+) },
     'MULTIPLY'   => ->(a, b, *rest) { [a, b, rest].flatten.reduce(:*) },
-    'SUBTRACT'  => ->(x, y) { x - y },
+    'SUBTRACT'   => ->(x, y) { x - y },
     'DIVIDE'     => ->(x, y) { x / y },
     'MOD'        => ->(x, y) { x % y },
   }
+
   LESS = "Wrong number of arguments for '%s': expected at least %s, got %s"
   MORE = "Wrong number of arguments for '%s': expected %s, got %s"
   UNKNOWN = "Unknown function '%s'"
@@ -135,7 +136,6 @@ class Formula
     args_count = @formula.arity < 0 ? @formula.arity.abs - 1 : @formula.arity
 
     if args.count < args_count
-      p "IN"
       raise Spreadsheet::Error, LESS % [@name, args_count, args.count]
     end
 
